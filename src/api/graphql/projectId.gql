@@ -1,0 +1,7 @@
+query abc($owner: String!, $projectNumber: Int!) {
+  organization(login: $owner) {
+    projectV2(number: $projectNumber) {
+      id
+    }
+  }
+}
