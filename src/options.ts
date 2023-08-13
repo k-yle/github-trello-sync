@@ -11,12 +11,24 @@ const optionKeys = <const>[
   'TRELLO_TOKEN',
   'TRELLO_KEY',
   'TRELLO_BOARD_ID',
+
+  'USERNAME_MAP',
 ];
+const optional = new Set<(typeof optionKeys)[number]>([
+  // subset of `optionKeys` which are optional
+  'USERNAME_MAP',
+]);
 
 export type Options = Record<(typeof optionKeys)[number], string>;
 
 export const options = optionKeys.reduce((ac, key) => {
-  const value = process.env[key];
-  if (!value) throw new Error(`${key} is not configured.`);
+  let value = process.env[key];
+  if (!value) {
+    if (optional.has(key)) {
+      value = '';
+    } else {
+      throw new Error(`${key} is not configured.`);
+    }
+  }
   return { ...ac, [key]: value };
 }, {} as Options);

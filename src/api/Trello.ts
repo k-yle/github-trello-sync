@@ -41,6 +41,7 @@ export class Trello {
   async getBoard(boardId: string) {
     return {
       board: await this.fetch<Trello.Board>(`/boards/${boardId}`),
+      labels: await this.fetch<Trello.Label[]>(`/boards/${boardId}/labels`),
       lists: await this.fetch<Trello.List[]>(`/boards/${boardId}/lists`),
       cards: await this.fetch<Trello.Card[]>(`/boards/${boardId}/cards`),
       members: await this.fetch<Trello.Member[]>(`/boards/${boardId}/members`),
@@ -66,6 +67,19 @@ export class Trello {
     return this.fetch(`/lists?${Trello.createUrlQp(options)}`, {
       method: 'POST',
     });
+  }
+
+  async createLabel(options: Trello.Create.NewLabel): Promise<Trello.Label> {
+    return this.fetch(`/labels?${Trello.createUrlQp(options)}`, {
+      method: 'POST',
+    });
+  }
+
+  async updateLabel(labelId: string, newName: string): Promise<Trello.Label> {
+    return this.fetch(
+      `/labels/${labelId}?name=${encodeURIComponent(newName)}`,
+      { method: 'PUT' },
+    );
   }
 }
 
@@ -104,6 +118,7 @@ export namespace Trello {
       canBePrivate: boolean;
       canInvite: boolean;
     };
+    /** @deprecated don't use */
     labelNames: {
       [labelId: string]: string;
     };
@@ -227,5 +242,23 @@ export namespace Trello {
       name: string;
       idBoard: string;
     }
+
+    export interface NewLabel {
+      name: string;
+      color: Colour;
+      idBoard: string;
+    }
   }
+
+  export type Colour =
+    | 'yellow'
+    | 'purple'
+    | 'blue'
+    | 'red'
+    | 'green'
+    | 'orange'
+    | 'black'
+    | 'sky'
+    | 'pink'
+    | 'lime';
 }

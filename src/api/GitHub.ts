@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import type { RestEndpointMethodTypes } from '@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types';
+import type { components } from '@octokit/openapi-types';
 import { options } from '../options';
 
 /* eslint-disable import/export -- deliberately merging namespace with class */
@@ -9,6 +10,8 @@ export { Octokit as GitHub } from 'octokit';
 export namespace GitHub {
   export type Issue =
     RestEndpointMethodTypes['issues']['listForRepo']['response']['data'][number];
+
+  export type User = components['schemas']['simple-user'];
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- this API only supports graphql… */

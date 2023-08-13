@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "lib": ["es2021", "dom"], // DOM is a hack since @types/node still doesn't have fetch
     "esModuleInterop": true,
     "downlevelIteration": true,
     "strict": true
