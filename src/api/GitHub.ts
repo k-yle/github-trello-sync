@@ -12,17 +12,31 @@ export namespace GitHub {
     RestEndpointMethodTypes['issues']['listForRepo']['response']['data'][number];
 
   export type User = components['schemas']['simple-user'];
+
+  export interface Milestone {
+    /** ISO Date */
+    dueOn: string;
+    description: string;
+    number: number;
+    title: string;
+    resourcePath: string;
+  }
+
+  export interface ProjectAttributes {
+    // these attribute names are special
+    Title: string;
+    Status: string;
+    Milestone?: GitHub.Milestone;
+
+    // all other attribute names are user-defined
+    [attributeName: string]: string | number | GitHub.Milestone | undefined;
+  }
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- this API only supports graphql… */
-export async function getGitHubProjects(github: GitHub): Promise<{
-  [issueNumber: number]: {
-    Status: string;
-    Epic?: string;
-    Priority: number;
-    Complexity: string;
-  };
-}> {
+export async function getGitHubProjects(
+  github: GitHub,
+): Promise<{ [issueNumber: number]: GitHub.ProjectAttributes }> {
   const result: any = await github.graphql(
     await fs.readFile(join(__dirname, './graphql/projectId.gql'), 'utf8'),
     {
@@ -46,7 +60,10 @@ export async function getGitHubProjects(github: GitHub): Promise<{
     for (const attribute of node.fieldValues.nodes) {
       if (attribute.field) {
         ghProjectInfo[issueNumber][attribute.field.name] =
-          attribute.text || attribute.name;
+          attribute.text ||
+          attribute.name ||
+          attribute.number ||
+          attribute.milestone;
       }
     }
   }

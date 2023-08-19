@@ -6,7 +6,7 @@ import {
   createTrelloDescription,
   createTrelloTitle,
   getTitlePrefix,
-} from './markdown';
+} from './util/markdown';
 import { options } from './options';
 import { findTrelloUser } from './util/findTrelloUser';
 
@@ -21,6 +21,7 @@ async function main() {
   const { data: ghIssues } = await github.rest.issues.listForRepo({
     owner: options.GITHUB_REPO_OWENER,
     repo: options.GITHUB_REPO_NAME,
+    per_page: 500,
   });
   console.log('Fetching GH Labels');
   const { data: ghLabels } = await github.request(
@@ -105,6 +106,8 @@ async function main() {
 
     const attributes = ghProjects[ghIssue.number];
 
+    if (!attributes) continue; // skip, this issue is not in the board
+
     const trelloList = trelloBoard.lists.find(
       (list) => list.name === attributes.Status,
     )!;
@@ -115,8 +118,8 @@ async function main() {
 
     const expectedCard: Trello.Create.NewCard = {
       name: createTrelloTitle(ghIssue),
-      desc: createTrelloDescription(ghIssue),
-      due: ghIssue.milestone?.due_on || undefined,
+      desc: createTrelloDescription(ghIssue, attributes),
+      due: ghIssue.milestone?.due_on?.replace('Z', '.000Z') || undefined,
       idList: trelloList.id,
       idLabels: ghIssue.labels
         .map((label) => (typeof label === 'string' ? label : label.name))

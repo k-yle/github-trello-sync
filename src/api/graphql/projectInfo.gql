@@ -14,6 +14,49 @@ query abc($projectId: ID!) {
                   }
                 }
               }
+              ... on ProjectV2ItemFieldNumberValue {
+                number
+                field {
+                  ... on ProjectV2FieldCommon {
+                    name
+                  }
+                }
+              }
+              ... on ProjectV2ItemFieldMilestoneValue {
+                milestone {
+                  ... on Milestone {
+                    dueOn
+                    description
+                    number
+                    title
+                    resourcePath
+                  }
+                }
+                field {
+                  ... on ProjectV2FieldCommon {
+                    name
+                  }
+                }
+              }
+              ... on ProjectV2ItemFieldPullRequestValue {
+                pullRequests(first: 8) {
+                  nodes {
+                    ... on PullRequest {
+                      closed
+                      closedAt
+                      merged
+                      number
+                      permalink
+                      title
+                    }
+                  }
+                }
+                field {
+                  ... on ProjectV2FieldCommon {
+                    name
+                  }
+                }
+              }
               ... on ProjectV2ItemFieldDateValue {
                 date
                 field {
