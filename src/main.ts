@@ -5,6 +5,7 @@ import { Trello } from './api/Trello';
 import {
   createTrelloDescription,
   createTrelloTitle,
+  extractChecklistItemsFromMarkdown,
   getTitlePrefix,
 } from './util/markdown';
 import { options } from './options';
@@ -45,6 +46,8 @@ async function main() {
     join(__dirname, '../debug.json'),
     JSON.stringify(sourceData, null, 2),
   );
+
+  console.log(`\nConflating “${trelloBoard.board.name}”\n`);
 
   //
   // 1. Check that trello has the required columns
@@ -112,7 +115,7 @@ async function main() {
       (list) => list.name === attributes.Status,
     )!;
 
-    const trelloCard = trelloBoard.cards.find((card) =>
+    let trelloCard = trelloBoard.cards.find((card) =>
       card.name.startsWith(getTitlePrefix(ghIssue.number)),
     );
 
@@ -135,6 +138,9 @@ async function main() {
         ) || [],
     };
 
+    //
+    // 3a. create/update card
+    //
     if (trelloCard) {
       // we found a card. check if all attribute are correct
       const optionsToUpdate: Partial<Trello.Create.NewCard> = {};
@@ -160,8 +166,78 @@ async function main() {
     } else {
       // no trello card found, so create one
       console.log(`Creating missing trello card for GH #${ghIssue.number}…`);
-      const newCard = await trello.createCard(expectedCard);
-      trelloBoard.cards.push(newCard);
+      trelloCard = await trello.createCard(expectedCard);
+      trelloBoard.cards.push(trelloCard);
+    }
+
+    // we need this line to keep TS happy
+    const finalCard = trelloCard;
+
+    //
+    // 3b. crete/update checklists on the card
+    //
+    const ghChecklist = extractChecklistItemsFromMarkdown(ghIssue.body || '');
+    const trelloChecklists = trelloBoard.checklists.filter(
+      (checklist) => checklist.idCard === finalCard.id,
+    );
+
+    if (trelloChecklists.length > 1) {
+      // delete any subsequent lists
+      for (const trelloChecklist of trelloChecklists.slice(1)) {
+        console.log(`Deleting checklist item for GH #${ghIssue.number}…`);
+        await trello.deleteChecklist(trelloChecklist.id);
+      }
+    }
+
+    // ensure that there is exactly 1 checklist for every card
+    const mainChecklist =
+      trelloChecklists[0] ||
+      (await (() => {
+        console.log(`Creating checklist for GH #${ghIssue.number}…`);
+        return trello.createChecklist({
+          idCard: finalCard.id,
+          name: 'Checklist',
+        });
+      })());
+
+    for (const ghChecklistItem of ghChecklist) {
+      const trelloItem = mainChecklist.checkItems.find(
+        (item) => item.name === ghChecklistItem.label,
+      );
+      if (trelloItem) {
+        // it already exists, so check if the status is correct
+        const isTrelloComplete = trelloItem.state === 'complete';
+        if (isTrelloComplete !== ghChecklistItem.completed) {
+          // need to update the state
+          console.log(
+            `Updating checklist item status for GH #${ghIssue.number}…`,
+          );
+          await trello.updateChecklistItem(
+            finalCard.id,
+            trelloItem.id,
+            ghChecklistItem.completed,
+          );
+        }
+      } else {
+        // need to create a new item
+        console.log(`Creating checklist item for GH #${ghIssue.number}…`);
+        const newItem = await trello.createChecklistItem(mainChecklist.id, {
+          name: ghChecklistItem.label,
+          checked: ghChecklistItem.completed,
+        });
+        mainChecklist.checkItems.push(newItem);
+      }
+    }
+
+    // now we need to loop through the trello items and delete any
+    // that don't exist in GitHub.
+    for (const trelloItem of mainChecklist.checkItems) {
+      const ghItem = ghChecklist.find((item) => item.label === trelloItem.name);
+      if (!ghItem) {
+        // no assosiated github item
+        console.log(`Deleting checklist item for GH #${ghIssue.number}…`);
+        await trello.deleteChecklistItem(mainChecklist.id, trelloItem.id);
+      }
     }
   }
 

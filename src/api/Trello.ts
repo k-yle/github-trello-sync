@@ -45,6 +45,9 @@ export class Trello {
       lists: await this.fetch<Trello.List[]>(`/boards/${boardId}/lists`),
       cards: await this.fetch<Trello.Card[]>(`/boards/${boardId}/cards`),
       members: await this.fetch<Trello.Member[]>(`/boards/${boardId}/members`),
+      checklists: await this.fetch<Trello.Checklist[]>(
+        `/boards/${boardId}/checklists`,
+      ),
     };
   }
 
@@ -79,6 +82,53 @@ export class Trello {
     return this.fetch(
       `/labels/${labelId}?name=${encodeURIComponent(newName)}`,
       { method: 'PUT' },
+    );
+  }
+
+  async createChecklist(
+    options: Trello.Create.NewChecklist,
+  ): Promise<Trello.Checklist> {
+    return this.fetch(`/checklists?${Trello.createUrlQp(options)}`, {
+      method: 'POST',
+    });
+  }
+
+  async deleteChecklist(checklistId: string): Promise<void> {
+    await this.fetch(`/checklists/${checklistId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async createChecklistItem(
+    checklistId: string,
+    options: Trello.Create.NewChecklistItem,
+  ): Promise<Trello.CheckListItem> {
+    return this.fetch(
+      `/checklists/${checklistId}/checkItems?${Trello.createUrlQp(options)}`,
+      { method: 'POST' },
+    );
+  }
+
+  async updateChecklistItem(
+    cardId: string,
+    checklistItemId: string,
+    completed: boolean,
+  ): Promise<Trello.CheckListItem> {
+    return this.fetch(
+      `/cards/${cardId}/checkItem/${checklistItemId}?state=${
+        completed ? 'complete' : 'incomplete'
+      }`,
+      { method: 'PUT' },
+    );
+  }
+
+  async deleteChecklistItem(
+    checklistId: string,
+    checklistItemId: string,
+  ): Promise<void> {
+    await this.fetch(
+      `/checklists/${checklistId}/checkItems/${checklistItemId}`,
+      { method: 'DELETE' },
     );
   }
 }
@@ -221,6 +271,31 @@ export namespace Trello {
     uses: number;
   }
 
+  export interface CheckListItem {
+    id: string;
+    name: string;
+    nameData: {
+      emoji: {
+        [emoji: string]: unknown;
+      };
+    };
+    pos: number;
+    state: string;
+    due: null;
+    dueReminder: null;
+    idMember: null;
+    idChecklist: string;
+  }
+
+  export interface Checklist {
+    id: string;
+    name: string;
+    idBoard: string;
+    idCard: string;
+    pos: number;
+    checkItems: Trello.CheckListItem[];
+  }
+
   export interface Member {
     id: string;
     fullName: string;
@@ -247,6 +322,16 @@ export namespace Trello {
       name: string;
       color: Colour;
       idBoard: string;
+    }
+
+    export interface NewChecklist {
+      idCard: string;
+      name: string;
+    }
+
+    export interface NewChecklistItem {
+      name: string;
+      checked: boolean;
     }
   }
 

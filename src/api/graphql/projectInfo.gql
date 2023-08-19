@@ -4,7 +4,7 @@ query abc($projectId: ID!) {
       items(first: 100) {
         nodes {
           id
-          fieldValues(first: 8) {
+          fieldValues(first: 50) {
             nodes {
               ... on ProjectV2ItemFieldTextValue {
                 text

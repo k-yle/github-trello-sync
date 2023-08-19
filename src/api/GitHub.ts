@@ -22,14 +22,24 @@ export namespace GitHub {
     resourcePath: string;
   }
 
+  export interface LinkedPRs {
+    nodes: { number: number; permalink: string; title: string }[];
+  }
+
   export interface ProjectAttributes {
     // these attribute names are special
     Title: string;
     Status: string;
     Milestone?: GitHub.Milestone;
+    'Linked pull requests'?: LinkedPRs;
 
     // all other attribute names are user-defined
-    [attributeName: string]: string | number | GitHub.Milestone | undefined;
+    [attributeName: string]:
+      | string
+      | number
+      | GitHub.Milestone
+      | GitHub.LinkedPRs
+      | undefined;
   }
 }
 
@@ -63,6 +73,7 @@ export async function getGitHubProjects(
           attribute.text ||
           attribute.name ||
           attribute.number ||
+          attribute.pullRequests ||
           attribute.milestone;
       }
     }
