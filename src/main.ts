@@ -19,11 +19,12 @@ async function main() {
   // 0. Fetch data
   //
   console.log('Fetching GH Issues…');
-  const { data: ghIssues } = await github.rest.issues.listForRepo({
+  const ghIssues = await github.paginate(github.rest.issues.listForRepo, {
     owner: options.GITHUB_REPO_OWENER,
     repo: options.GITHUB_REPO_NAME,
-    per_page: 500,
+    state: 'all',
   });
+
   console.log('Fetching GH Labels');
   const { data: ghLabels } = await github.request(
     'GET /repos/{owner}/{repo}/labels',
